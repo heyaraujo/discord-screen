@@ -24,7 +24,7 @@ const {
   TURN_URL = '',
   TURN_USER = '',
   TURN_PASS = '',
-  PUBLIC_ORIGIN: ORIGEM_CRUA = 'http://localhost:3001',
+  PUBLIC_ORIGIN: ORIGEM_CRUA = process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001',
   PORT = 3001,
   NODE_ENV = 'development',
 } = process.env;
