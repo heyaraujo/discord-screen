@@ -19,6 +19,7 @@ const {
   DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET,
   DISCORD_BOT_TOKEN,
+  DISCORD_ALLOWED_GUILD_ID = '1488282598299013183',
   DISCORD_ADMIN_ID = '',
   TURN_URL = '',
   TURN_USER = '',
@@ -32,6 +33,9 @@ const {
 // redirect do OAuth vira "//auth/callback", que não bate com o endereço
 // cadastrado no portal. O login falha sem explicar nada.
 const PUBLIC_ORIGIN = ORIGEM_CRUA.replace(/[/]+$/, '');
+const ALLOWED_GUILD_ID = /^[0-9]{15,21}$/.test(String(DISCORD_ALLOWED_GUILD_ID))
+  ? String(DISCORD_ALLOWED_GUILD_ID)
+  : null;
 
 const isProd = NODE_ENV === 'production';
 // Mais de uma pessoa administra: separe os IDs por virgula. Um Set porque a
@@ -251,6 +255,12 @@ app.post('/api/session', async (req, res) => {
     if (!me?.id) return res.status(401).json({ error: 'token invalido' });
 
     const guildId = /^[0-9]{15,21}$/.test(String(guild_id ?? '')) ? String(guild_id) : null;
+    if (ALLOWED_GUILD_ID && guildId !== ALLOWED_GUILD_ID) {
+      return res.status(403).json({
+        error: 'Esta atividade está disponível somente no servidor autorizado.',
+      });
+    }
+
     const channelId = /^[0-9]{15,21}$/.test(String(channel_id ?? '')) ? String(channel_id) : null;
     const [presenca, guildName] = await Promise.all([
       inVoiceChannel(guildId, channelId, me.id),
@@ -339,6 +349,10 @@ app.post('/api/session-dev', (req, res) => {
 });
 
 app.post('/api/session-guest', (req, res) => {
+  // Em uma instalação privada, o site público não cria identidades nem salas.
+  // A página de captura continua funcionando pelo link assinado da própria call.
+  if (ALLOWED_GUILD_ID) return res.status(404).end();
+
   const raw = String(req.body?.name ?? '')
     .replace(/\s+/g, ' ')
     .trim()
